@@ -10,7 +10,7 @@ import {
   zStudentDeleteBody,
   zStudentPostBody,
   zStudentPutBody,
-} from "@libs/studentValidator.js";
+} from "./libs/studentValidator.ts";
 import type { ok } from "node:assert";
 
 const app = express();
