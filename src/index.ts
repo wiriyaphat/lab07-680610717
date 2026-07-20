@@ -1,23 +1,24 @@
-import express, { type Request, type Response } from 'express';
+import express, { type Request, type Response } from "express";
 
 // import middleware
 import morgan from "morgan";
 
 // import database
-import { students } from '@db/db.js';
-import { type Student, type Course } from "@libs/types.js";
+import { students } from "./db/db.ts";
+import { type Student, type Course } from "./libs/types.js";
 import {
   zStudentDeleteBody,
   zStudentPostBody,
   zStudentPutBody,
 } from "@libs/studentValidator.js";
+import type { ok } from "node:assert";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // use middleware
 app.use(morgan("dev", { immediate: false }));
-app.use(express.json());    // parses request's payload into 'req.body'
+app.use(express.json()); // parses request's payload into 'req.body'
 
 // Endpoints
 app.get("/", (req: Request, res: Response) => {
@@ -29,18 +30,35 @@ app.get("/", (req: Request, res: Response) => {
 app.get("/students", (req: Request, res: Response) => {
   try {
     const program = req.query.program;
+    const studentId = req.query.studentId;
 
-    if (program) {
-      let filtered_students = students.filter(
-        (student) => student.program === program
+    if (program && studentId) {
+      let filtered_Bothstudents = students
+        .filter((student) => student.program === program)
+        .filter((stuId) => stuId.studentId === studentId);
+      return res.json({
+        ok: true,
+        students: filtered_Bothstudents,
+      });
+    } else if (studentId) {
+      let filtered_studentsId = students.filter(
+        (student) => student.studentId === studentId,
       );
       return res.json({
-        success: true,
-        data: filtered_students,
+        ok: true,
+        students: filtered_studentsId,
+      });
+    } else if (program) {
+      let filtered_students = students.filter(
+        (student) => student.program === program,
+      );
+      return res.json({
+        ok: true,
+        students: filtered_students,
       });
     } else {
       return res.json({
-        success: true,
+        ok: true,
         count: students.length,
         data: students,
       });
@@ -56,7 +74,7 @@ app.get("/students", (req: Request, res: Response) => {
 
 // POST /students, body = {new student data}
 // add a new student
-app.post("/students", (req: Request, res: Response) => {
+app.post("/api/students", (req: Request, res: Response) => {
   try {
     const body = req.body as Student;
 
@@ -71,7 +89,7 @@ app.post("/students", (req: Request, res: Response) => {
 
     //check duplicate studentId
     const found = students.find(
-      (student) => student.studentId === body.studentId
+      (student) => student.studentId === body.studentId,
     );
     if (found) {
       return res.json({
@@ -118,7 +136,7 @@ app.put("/students", (req: Request, res: Response) => {
 
     //check duplicate studentId
     const foundIndex = students.findIndex(
-      (student) => student.studentId === body.studentId
+      (student) => student.studentId === body.studentId,
     );
 
     if (foundIndex === -1) {
@@ -149,13 +167,53 @@ app.put("/students", (req: Request, res: Response) => {
 });
 
 // DELETE /students, body = {studentId}
-app.delete("/students", (req: Request, res: Response) => {
+app.delete("/api/students", (req: Request, res: Response) => {
+  try {
+    const { studentId } = req.body;
+    const val = zStudentDeleteBody.safeParse({ studentId });
+    if (!val.success) {
+      return res.status(400).json({
+        ok: false,
+        message: `Student Id must contain 9 characters`,
+      });
+    }
+    const found = students.find((student) => student.studentId === studentId);
+    const deletedStudent = students.filter((s) => s.studentId !== studentId);
+    if (deletedStudent && found) {
+      return res.status(200).json({
+        ok: true,
+        message: `Student Id ${studentId} has been deleted`,
+      });
+    } else {
+      return res.status(404).json({
+        ok: false,
+        message: `Student ID does not exist`,
+      });
+    }
+  } catch (err) {
+    return res.json({
+      success: false,
+      message: "Somthing is wrong, please try again",
+      error: err,
+    });
+  }
+
   res.json({
-    message: "Implement this!"
-  })
+    message: "Implement this!",
+  });
 });
 
 // GET /api/me
+
+app.get("/api/me", (req: Request, res: Response) => {
+  try {
+    return res.status(200).json({
+      ok: true,
+      fullName: "Wiriyaphat Phromphong",
+      studentId: 680610717,
+    });
+  } catch {}
+});
 
 app.listen(port, async () => {
   console.log(`🚀 Server running on http://localhost:${port}`);
