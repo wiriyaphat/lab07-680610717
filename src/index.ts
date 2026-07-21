@@ -4,7 +4,7 @@ import express, { type Request, type Response } from "express";
 import morgan from "morgan";
 
 // import database
-import { students } from "./db/db.ts";
+import { students } from "./db/db.js";
 import { type Student, type Course } from "./libs/types.js";
 import {
   zStudentDeleteBody,
@@ -177,19 +177,23 @@ app.delete("/api/students", (req: Request, res: Response) => {
         message: `Student Id must contain 9 characters`,
       });
     }
-    const found = students.find((student) => student.studentId === studentId);
-    const deletedStudent = students.filter((s) => s.studentId !== studentId);
-    if (deletedStudent && found) {
-      return res.status(200).json({
-        ok: true,
-        message: `Student Id ${studentId} has been deleted`,
-      });
-    } else {
+    const found = students.findIndex(
+      (student) => student.studentId === studentId,
+    );
+
+    if (found === -1) {
       return res.status(404).json({
         ok: false,
         message: `Student ID does not exist`,
       });
     }
+
+    students.splice(found, 1);
+
+    return res.status(200).json({
+      ok: true,
+      message: `Student Id ${studentId} has been deleted`,
+    });
   } catch (err) {
     return res.json({
       success: false,
@@ -212,7 +216,13 @@ app.get("/api/me", (req: Request, res: Response) => {
       fullName: "Wiriyaphat Phromphong",
       studentId: 680610717,
     });
-  } catch {}
+  } catch (err) {
+    return res.json({
+      success: false,
+      message: "Somthing is wrong, please try again",
+      error: err,
+    });
+  }
 });
 
 app.listen(port, async () => {
